@@ -1,0 +1,14 @@
+# 个人信息与他人签名：仓库公开，绝不入库
+docs/任务书/
+图片*.png
+*签名*
+
+# 数据集与模型产物不入库
+ml/data/
+ml/artifacts/
+*.onnx
+*.pt
+.env
+__pycache__/
+node_modules/
+dist/

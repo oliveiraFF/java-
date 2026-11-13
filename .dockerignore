@@ -1,0 +1,11 @@
+# 构建上下文为仓库根目录（backend 镜像），排除大文件与无关目录
+ml/
+docs/
+frontend/
+.git/
+.env
+**/__pycache__/
+**/*.pyc
+**/node_modules/
+**/dist/
+*.png

@@ -1,0 +1,49 @@
+/* 设计令牌（暂定，M3 视觉稿确认后定稿）。组件里不写死色值，一律引用变量。 */
+:root {
+  --page: #e9eeed;
+  --bg: #fbfcfc;
+  --panel-2: #f1f5f4;
+  --border: rgba(16, 38, 38, 0.08);
+  --ink-1: #0f2322;
+  --ink-2: #3a4b4a;
+  --ink-3: #5f7170;
+  --accent: #176c6b;
+  --accent-soft: rgba(23, 108, 107, 0.1);
+  --on-accent: #fbfcfc;
+  --safe: #2c7a62;
+  --suspicious: #a86c12;
+  --phishing: #c0453c;
+  --shadow: 0 1px 3px rgba(19, 61, 74, 0.06);
+  --r: 16px;
+  --r-sm: 10px;
+  --font: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #0b1212;
+    --bg: #121b1b;
+    --panel-2: #1a2525;
+    --border: rgba(255, 255, 255, 0.08);
+    --ink-1: #e6efee;
+    --ink-2: #a7b7b5;
+    --ink-3: #8a9b99;
+    --accent: #2fd3c5;
+    --accent-soft: rgba(47, 211, 197, 0.12);
+    --on-accent: #06110f;
+    --safe: #3fcb86;
+    --suspicious: #e8a33d;
+    --phishing: #ff6b5a;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--page);
+  color: var(--ink-2);
+  font: 14px/1.6 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
