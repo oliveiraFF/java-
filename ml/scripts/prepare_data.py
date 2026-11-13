@@ -48,7 +48,8 @@ def load(raw_dir: Path) -> pd.DataFrame:
         p = raw_dir / fname
         if not p.exists():
             sys.exit(f"缺少数据文件：{p}")
-        df = pd.read_csv(p, dtype=str, keep_default_na=False, encoding="utf-8", encoding_errors="replace", engine="python", on_bad_lines="warn")
+        # C 引擎：支持带引号的多行字段，且没有 python 引擎 128KB 的单字段上限
+        df = pd.read_csv(p, dtype=str, keep_default_na=False, encoding="utf-8", encoding_errors="replace", engine="c", on_bad_lines="warn")
         for col in ("sender", "receiver", "date", "subject", "body", "urls", "label"):
             if col not in df.columns:
                 df[col] = ""
