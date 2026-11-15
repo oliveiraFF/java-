@@ -15,3 +15,7 @@ build/
 .pytest_cache/
 node_modules/
 dist/
+
+# 本地 Python 环境
+.venv/
+ml/.cache/

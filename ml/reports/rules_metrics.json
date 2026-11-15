@@ -1,0 +1,351 @@
+{
+  "n_test": 16376,
+  "score_auc_all": 0.5511694838269153,
+  "score_auc_focus": 0.8093520143558597,
+  "at_threshold": {
+    "10": {
+      "n": 16376,
+      "accuracy": 0.5341353199804592,
+      "precision": 0.7392,
+      "recall": 0.1625615763546798,
+      "f1": 0.26651283530429765,
+      "roc_auc": 0.5511694838269153,
+      "pr_auc": 0.5718593528705687,
+      "fpr": 0.06229299363057325,
+      "tp": 1386,
+      "fp": 489,
+      "tn": 7361,
+      "fn": 7140
+    },
+    "20": {
+      "n": 16376,
+      "accuracy": 0.501770884220811,
+      "precision": 0.9443099273607748,
+      "recall": 0.04574243490499648,
+      "f1": 0.08725808255957042,
+      "roc_auc": 0.5511694838269153,
+      "pr_auc": 0.5718593528705687,
+      "fpr": 0.002929936305732484,
+      "tp": 390,
+      "fp": 23,
+      "tn": 7827,
+      "fn": 8136
+    },
+    "30": {
+      "n": 16376,
+      "accuracy": 0.4801538837322912,
+      "precision": 0.8823529411764706,
+      "recall": 0.0017593244194229415,
+      "f1": 0.0035116469624253775,
+      "roc_auc": 0.5511694838269153,
+      "pr_auc": 0.5718593528705687,
+      "fpr": 0.00025477707006369424,
+      "tp": 15,
+      "fp": 2,
+      "tn": 7848,
+      "fn": 8511
+    },
+    "50": {
+      "n": 16376,
+      "accuracy": 0.4794211040547142,
+      "precision": 1.0,
+      "recall": 0.0001172882946281961,
+      "f1": 0.00023454907939486337,
+      "roc_auc": 0.5511694838269153,
+      "pr_auc": 0.5718593528705687,
+      "fpr": 0.0,
+      "tp": 1,
+      "fp": 0,
+      "tn": 7850,
+      "fn": 8525
+    }
+  },
+  "zero_score_rate": {
+    "ham": 0.9359235668789809,
+    "spam": 0.901415905782718,
+    "phishing": 0.5980707395498392,
+    "fraud": 0.21580547112462006
+  },
+  "per_rule": {
+    "AUTH_SPF_FAIL": {
+      "name": "SPF 校验失败",
+      "weight": 15,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "AUTH_DKIM_FAIL": {
+      "name": "DKIM 签名校验失败",
+      "weight": 10,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "AUTH_DMARC_FAIL": {
+      "name": "DMARC 校验失败",
+      "weight": 20,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "REPLY_TO_MISMATCH": {
+      "name": "回复地址与发件人不一致",
+      "weight": 15,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "RETURN_PATH_MISMATCH": {
+      "name": "退信地址与发件人不一致",
+      "weight": 5,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "DISPLAY_NAME_EMAIL": {
+      "name": "显示名伪装成其他邮箱",
+      "weight": 15,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "DISPLAY_NAME_BRAND": {
+      "name": "显示名冒充品牌或机构",
+      "weight": 20,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "FREEMAIL_EXEC": {
+      "name": "免费邮箱冒充领导或财务",
+      "weight": 15,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "SENDER_LOOKALIKE": {
+      "name": "发件域名仿冒",
+      "weight": 30,
+      "hits": 2,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.006430868167202572,
+      "rate_fraud": 0.0,
+      "precision": 1.0
+    },
+    "URL_IP_HOST": {
+      "name": "链接直连 IP 地址",
+      "weight": 20,
+      "hits": 28,
+      "rate_ham": 0.0003821656050955414,
+      "rate_spam": 0.0033081910811168453,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": 0.8928571428571429
+    },
+    "URL_TEXT_MISMATCH": {
+      "name": "链接显示地址与实际地址不一致",
+      "weight": 25,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "URL_PUNYCODE": {
+      "name": "链接使用国际化编码域名",
+      "weight": 20,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "URL_SHORTENER": {
+      "name": "使用短链接",
+      "weight": 10,
+      "hits": 13,
+      "rate_ham": 0.0016560509554140127,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": 0.0
+    },
+    "URL_AT_SIGN": {
+      "name": "链接含 @ 符号",
+      "weight": 15,
+      "hits": 10,
+      "rate_ham": 0.00025477707006369424,
+      "rate_spam": 0.000661638216223369,
+      "rate_phishing": 0.006430868167202572,
+      "rate_fraud": 0.001519756838905775,
+      "precision": 0.8
+    },
+    "URL_MANY_SUBDOMAINS": {
+      "name": "链接子域名层级过多",
+      "weight": 5,
+      "hits": 22,
+      "rate_ham": 0.0025477707006369425,
+      "rate_spam": 0.00013232764324467382,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.001519756838905775,
+      "precision": 0.09090909090909091
+    },
+    "URL_SUSPICIOUS_TLD": {
+      "name": "链接使用高风险顶级域名",
+      "weight": 10,
+      "hits": 1,
+      "rate_ham": 0.00012738853503184712,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": 0.0
+    },
+    "URL_LOOKALIKE": {
+      "name": "链接域名仿冒品牌",
+      "weight": 25,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "URL_HTTP_LOGIN": {
+      "name": "登录页面未加密",
+      "weight": 10,
+      "hits": 290,
+      "rate_ham": 0.01070063694267516,
+      "rate_spam": 0.026994839221913456,
+      "rate_phishing": 0.006430868167202572,
+      "rate_fraud": 0.0,
+      "precision": 0.7103448275862069
+    },
+    "TEXT_URGENCY": {
+      "name": "制造紧迫感",
+      "weight": 10,
+      "hits": 1094,
+      "rate_ham": 0.038089171974522294,
+      "rate_spam": 0.04644700277888051,
+      "rate_phishing": 0.1639871382636656,
+      "rate_fraud": 0.5972644376899696,
+      "precision": 0.726691042047532
+    },
+    "TEXT_CREDENTIAL": {
+      "name": "索取账号密码",
+      "weight": 15,
+      "hits": 115,
+      "rate_ham": 0.00025477707006369424,
+      "rate_spam": 0.009792245600105862,
+      "rate_phishing": 0.12540192926045016,
+      "rate_fraud": 0.0,
+      "precision": 0.9826086956521739
+    },
+    "TEXT_MONEY": {
+      "name": "涉及转账或金钱诱导",
+      "weight": 15,
+      "hits": 513,
+      "rate_ham": 0.004713375796178344,
+      "rate_spam": 0.019849146486701073,
+      "rate_phishing": 0.00964630225080386,
+      "rate_fraud": 0.4908814589665654,
+      "precision": 0.9278752436647173
+    },
+    "TEXT_THREAT": {
+      "name": "以账户异常相威胁",
+      "weight": 10,
+      "hits": 207,
+      "rate_ham": 0.008789808917197453,
+      "rate_spam": 0.010189228529839884,
+      "rate_phishing": 0.1832797427652733,
+      "rate_fraud": 0.0060790273556231,
+      "precision": 0.6666666666666666
+    },
+    "HTML_FORM": {
+      "name": "邮件内嵌表单",
+      "weight": 15,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "ATT_DANGEROUS": {
+      "name": "危险类型附件",
+      "weight": 30,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "ATT_DOUBLE_EXT": {
+      "name": "附件双扩展名",
+      "weight": 30,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "ATT_MACRO": {
+      "name": "启用宏的文档附件",
+      "weight": 20,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "ATT_ARCHIVE_PASSWORD": {
+      "name": "加密压缩包附件",
+      "weight": 20,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    },
+    "CRIT_AUTH_SPOOF": {
+      "name": "身份认证失败且冒充品牌",
+      "weight": 40,
+      "hits": 0,
+      "rate_ham": 0.0,
+      "rate_spam": 0.0,
+      "rate_phishing": 0.0,
+      "rate_fraud": 0.0,
+      "precision": null
+    }
+  }
+}
