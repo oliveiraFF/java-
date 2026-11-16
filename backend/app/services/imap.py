@@ -109,6 +109,17 @@ class MailboxClient:
         uids = sorted(u for u in self.c.search(["UID", f"{last_uid + 1}:*"]) if u > last_uid)
         return {"uidvalidity": uidvalidity, "last_uid": last_uid}, self._fetch(uids)
 
+    def rewind(self, folder: str, state: dict, n: int) -> dict:
+        """把同步游标往前挪，使下次同步检测文件夹中最近的 n 封邮件（接入时回扫用）。"""
+        if n <= 0:
+            return state
+        self.c.select_folder(folder, readonly=True)
+        uids = sorted(self.c.search(["ALL"]))
+        if not uids:
+            return state
+        start = uids[-n] if len(uids) >= n else uids[0]
+        return {**state, "last_uid": start - 1}
+
     def _fetch(self, uids: list[int]) -> Iterator[FetchedMessage]:
         for i in range(0, len(uids), BATCH):
             chunk = uids[i:i + BATCH]

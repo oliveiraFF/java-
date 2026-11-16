@@ -64,6 +64,37 @@ def imap_folder_subjects(folder: str) -> list[str]:
         return [v[b"BODY[HEADER.FIELDS (SUBJECT)]"].decode().strip().removeprefix("Subject: ") for v in data.values()]
 
 
+def test_backfill_only_in_observe_mode(client, admin_h, monkeypatch):
+    """接入时回扫最近 N 封：观察模式外拒绝；观察模式下只检测、不移动。"""
+    from app.db.session import SessionLocal
+    from app.models import Email
+    from app.worker import tasks
+
+    # 接口里会把同步任务投递给 Celery；测试中不能让开发环境的 worker 去处理测试库的数据
+    monkeypatch.setattr(tasks.sync_mailbox, "delay", lambda *a, **k: None)
+    for m in client.get("/api/v1/mailboxes", headers=admin_h).json():
+        if m["address"] == USER:
+            client.delete(f"/api/v1/mailboxes/{m['id']}", headers=admin_h)
+    reset_mailbox()
+    for i in range(3):
+        send(f"history {i}", "old@corp.test", text=f"old message {i}")
+    time.sleep(1)
+    body = {"address": USER, "imap_host": HOST, "imap_port": 3143, "use_ssl": False, "password": PASS, "backfill": 2}
+
+    client.put("/api/v1/settings", headers=admin_h, json={"observe_mode": False})
+    r = client.post("/api/v1/mailboxes", headers=admin_h, json=body)
+    assert r.status_code == 400 and r.json()["code"] == "BACKFILL_NEEDS_OBSERVE"
+
+    client.put("/api/v1/settings", headers=admin_h, json={"observe_mode": True})
+    r = client.post("/api/v1/mailboxes", headers=admin_h, json=body)
+    assert r.status_code == 201, r.text
+    assert tasks._sync(r.json()["id"])["new"] == 2  # 只回扫最近 2 封
+    with SessionLocal() as db:
+        subjects = {e.subject: e.status.value for e in db.query(Email).filter(Email.mailbox_id == r.json()["id"])}
+    assert subjects == {"history 1": "detected", "history 2": "detected"}  # 观察模式：只检测不移动
+    client.delete(f"/api/v1/mailboxes/{r.json()['id']}", headers=admin_h)
+
+
 def test_sync_detect_quarantine_release(client, admin_h, operator_h):
     from app.db.session import SessionLocal
     from app.models import Email

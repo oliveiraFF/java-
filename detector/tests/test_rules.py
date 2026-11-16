@@ -79,5 +79,11 @@ def test_legit_brand_sender_not_flagged():
     assert evaluate(pe).score == 0
 
 
+def test_microsoft_rewards_is_official():
+    # 真实邮箱中的误报：微软积分计划使用独立域名
+    pe = ParsedEmail(from_addr="news@customeremail.microsoftrewards.com", from_name="Microsoft Rewards")
+    assert "DISPLAY_NAME_BRAND" not in ids(pe)
+
+
 def test_rule_ids_unique():
     assert len({r.rule_id for r in RULES}) == len(RULES)

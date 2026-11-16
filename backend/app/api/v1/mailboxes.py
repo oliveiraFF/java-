@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.models import Mailbox, MailboxStatus, User, UserRole
 from app.schemas import ConnectionTestOut, MailboxIn, MailboxOut, MailboxUpdate
 from app.services import audit
+from app.services import settings as settings_svc
 from app.services.imap import ImapError, MailboxClient, test_connection
 
 router = APIRouter(prefix="/mailboxes", tags=["mailboxes"])
@@ -44,6 +45,9 @@ def test(body: MailboxIn, _: User = Depends(admin_only)):
 def create(body: MailboxIn, request: Request, db: Session = Depends(get_db), me: User = Depends(admin_only)):
     if db.scalar(select(Mailbox).where(Mailbox.address == body.address.lower())):
         raise AppError(409, "MAILBOX_EXISTS", "该邮箱已接入")
+    if body.backfill and not settings_svc.get_all(db)["observe_mode"]:
+        # 回扫的是员工已经读过的历史邮件，只允许在观察模式下检测，避免误把历史邮件移走
+        raise AppError(400, "BACKFILL_NEEDS_OBSERVE", "回扫历史邮件需要先在设置中开启观察模式")
     username = body.username or body.address
     try:
         with MailboxClient(body.imap_host, body.imap_port, body.use_ssl, username, body.password) as mc:
@@ -53,8 +57,8 @@ def create(body: MailboxIn, request: Request, db: Session = Depends(get_db), me:
             if missing:
                 raise AppError(400, "FOLDER_NOT_FOUND", f"邮箱中不存在文件夹：{'、'.join(missing)}")
             mc.ensure_folder(body.quarantine_folder)
-            # 记录当前位置：接入前的历史邮件不检测
-            state = {f: mc.fetch_new(f, None)[0] for f in body.folders}
+            # 记录当前位置：默认不检测接入前的历史邮件；选择回扫时把游标往前挪 N 封
+            state = {f: mc.rewind(f, mc.fetch_new(f, None)[0], body.backfill) for f in body.folders}
     except ImapError as exc:
         raise AppError(400, "IMAP_CONNECT_FAILED", str(exc)) from None
     for s in state.values():
@@ -65,8 +69,12 @@ def create(body: MailboxIn, request: Request, db: Session = Depends(get_db), me:
     db.add(mb)
     db.flush()
     audit.record(db, "mailbox.create", user=me, target_type="mailbox", target_id=mb.id,
-                 detail={"address": mb.address, "host": mb.imap_host, "ssl": mb.use_ssl}, ip=client_ip(request))
+                 detail={"address": mb.address, "host": mb.imap_host, "ssl": mb.use_ssl, "backfill": body.backfill}, ip=client_ip(request))
     db.commit()
+    if body.backfill:
+        from app.worker.tasks import sync_mailbox  # 延迟导入
+
+        sync_mailbox.delay(mb.id)  # 立即开始检测回扫的邮件
     return mb
 
 

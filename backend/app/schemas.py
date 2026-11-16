@@ -67,6 +67,7 @@ class MailboxIn(BaseModel):
     password: str = Field(min_length=1, max_length=512, description="邮箱授权码，只写不读")
     folders: list[str] = Field(default_factory=lambda: ["INBOX"], min_length=1)
     quarantine_folder: str = Field(default="PhishGuard-隔离", min_length=1, max_length=255)
+    backfill: int = Field(default=0, ge=0, le=200, description="接入时回扫每个文件夹最近的 N 封邮件（仅观察模式下允许）")
 
 
 class MailboxUpdate(BaseModel):

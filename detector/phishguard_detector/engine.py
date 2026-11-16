@@ -71,10 +71,17 @@ class Engine:
 
     @classmethod
     def from_model_dir(cls, model_dir: str | Path, cfg: FusionConfig | None = None) -> Engine:
+        """优先加载"钓鱼 vs 非钓鱼"模型（baseline_tfidf_phish.joblib）。
+
+        按原始标签训练的 baseline_tfidf.joblib 会把营销、通知类邮件当成垃圾邮件，
+        在真实邮箱上误报率很高（见 docs/实验记录.md 实验 5），只在没有新模型时作为后备。
+        """
         models: list[TextModel] = []
-        baseline = Path(model_dir) / "baseline_tfidf.joblib"
-        if baseline.exists():
-            models.append(BaselineModel(baseline))
+        for name in ("baseline_tfidf_phish.joblib", "baseline_tfidf.joblib"):
+            path = Path(model_dir) / name
+            if path.exists():
+                models.append(BaselineModel(path))
+                break
         return cls(models, cfg)
 
     def detect_bytes(self, raw: bytes, *, allowlisted: bool = False) -> Detection:

@@ -37,7 +37,7 @@ export interface Mailbox {
   folders: string[]; quarantine_folder: string; capabilities: string[]; status: 'active' | 'paused' | 'error'
   last_error: string | null; last_synced_at: string | null; created_at: string
 }
-export interface MailboxIn { address: string; imap_host: string; imap_port: number; use_ssl: boolean; username?: string; password: string; folders: string[]; quarantine_folder: string }
+export interface MailboxIn { address: string; imap_host: string; imap_port: number; use_ssl: boolean; username?: string; password: string; folders: string[]; quarantine_folder: string; backfill?: number }
 export interface ConnTest { ok: boolean; message: string; capabilities: string[]; supports_move: boolean; supports_idle: boolean; folders: string[] }
 export interface Preset { name: string; imap_host: string; imap_port: number }
 

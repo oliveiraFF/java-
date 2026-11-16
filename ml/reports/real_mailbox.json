@@ -1,0 +1,44 @@
+{
+  "name": "QQ 邮箱最近 50 封",
+  "n": 50,
+  "all_legitimate": true,
+  "rules_only": {
+    "flag_ge50": 0,
+    "flag_ge80": 0,
+    "any_hit": 27
+  },
+  "models": {
+    "tfidf_malicious": {
+      "label": "TF-IDF（恶意 vs 正常，原始标签）",
+      "model_ge50": 33,
+      "model_ge80": 11,
+      "model_median": 0.6272330731002471,
+      "system_suspicious_or_more": 34,
+      "system_phishing": 13
+    },
+    "tfidf_phish": {
+      "label": "TF-IDF（钓鱼 vs 非钓鱼）",
+      "model_ge50": 1,
+      "model_ge80": 1,
+      "model_median": 0.23084473621017676,
+      "system_suspicious_or_more": 5,
+      "system_phishing": 1
+    },
+    "bert_malicious": {
+      "label": "DistilBERT（恶意 vs 正常，原始标签）",
+      "model_ge50": 25,
+      "model_ge80": 24,
+      "model_median": 0.5116231441497803,
+      "system_suspicious_or_more": 25,
+      "system_phishing": 25
+    },
+    "bert_phish": {
+      "label": "DistilBERT（钓鱼 vs 非钓鱼）",
+      "model_ge50": 23,
+      "model_ge80": 23,
+      "model_median": 0.20333081483840942,
+      "system_suspicious_or_more": 23,
+      "system_phishing": 23
+    }
+  }
+}

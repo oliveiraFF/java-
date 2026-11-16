@@ -10,7 +10,8 @@ _SECOND_LEVEL = {"com", "net", "org", "gov", "edu", "co", "ac", "or", "ne", "go"
 # 品牌 → 官方可注册域名
 BRANDS: dict[str, set[str]] = {
     "paypal": {"paypal.com"},
-    "microsoft": {"microsoft.com", "office.com", "outlook.com", "live.com", "microsoftonline.com", "office365.com"},
+    "microsoft": {"microsoft.com", "office.com", "outlook.com", "live.com", "microsoftonline.com", "office365.com",
+                  "microsoftrewards.com", "xbox.com", "bing.com", "skype.com", "azure.com"},
     "apple": {"apple.com", "icloud.com"},
     "amazon": {"amazon.com", "amazon.cn"},
     "google": {"google.com", "gmail.com"},

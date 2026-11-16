@@ -32,6 +32,9 @@ const form = reactive<MailboxIn>({ address: '', imap_host: '', imap_port: 993, u
 const test = ref<ConnTest | null>(null)
 const busy = ref(false)
 const err = ref('')
+const observe = ref(true)
+const doBackfill = ref(true)
+const backfillN = ref(50)
 
 function startAdd() {
   Object.assign(form, { address: '', imap_host: '', imap_port: 993, use_ssl: true, username: '', password: '', folders: ['INBOX'], quarantine_folder: 'PhishGuard-隔离' })
@@ -40,6 +43,7 @@ function startAdd() {
   err.value = ''
   step.value = 0
   open.value = true
+  api.settings().then((s) => { observe.value = s.observe_mode; doBackfill.value = s.observe_mode }).catch(() => {})
 }
 function pick(p: Preset | null) {
   preset.value = p?.name || '其他'
@@ -61,8 +65,9 @@ async function save() {
   busy.value = true
   err.value = ''
   try {
-    await api.createMailbox({ ...form, username: form.username || undefined })
-    ElMessage.success('邮箱已接入。接入前的历史邮件不会检测，之后的新邮件会自动检测')
+    const backfill = observe.value && doBackfill.value ? backfillN.value : 0
+    await api.createMailbox({ ...form, username: form.username || undefined, backfill })
+    ElMessage.success(backfill ? `邮箱已接入，正在检测最近 ${backfill} 封邮件，稍后到“邮件”页查看` : '邮箱已接入，之后收到的新邮件会自动检测')
     open.value = false
     load()
   } catch (e) { err.value = (e as ApiError).message } finally { busy.value = false }
@@ -175,7 +180,12 @@ async function remove(m: Mailbox) {
           <dt>移动邮件</dt><dd>{{ test?.supports_move ? '支持' : '不支持，将用复制 + 删除代替' }}</dd>
           <dt>隔离文件夹</dt><dd>{{ form.quarantine_folder }}（不存在会自动创建）</dd>
         </dl>
-        <p class="muted small">接入后，只检测之后收到的新邮件。系统处于观察模式时只检测、不自动隔离。</p>
+        <div class="backfill">
+          <el-checkbox v-model="doBackfill" :disabled="!observe">同时检测最近的历史邮件</el-checkbox>
+          <el-input-number v-model="backfillN" :min="1" :max="200" size="small" :disabled="!observe || !doBackfill" /> 封
+        </div>
+        <p v-if="observe" class="muted small">当前处于观察模式：历史邮件和新邮件都只检测、不移动，适合先评估误报情况。</p>
+        <p v-else class="muted small">回扫历史邮件需要先在"设置"中开启观察模式。接入后只检测之后收到的新邮件，钓鱼邮件会被自动隔离。</p>
         <p v-if="err" class="err" role="alert">{{ err }}</p>
       </div>
 
@@ -219,6 +229,7 @@ footer .el-button { margin: 0; }
 .row { display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 10px; }
 .row > div { display: grid; gap: 6px; }
 .confirm .ok { color: var(--safe); margin: 0 0 12px; }
+.backfill { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; font-size: 13px; }
 :deep(.mono-input input) { font-family: var(--mono); }
 :deep(.el-collapse) { --el-collapse-header-bg-color: transparent; --el-collapse-content-bg-color: transparent; border: 0; margin-top: 6px; }
 :deep(.el-collapse-item__content) { display: grid; gap: 6px; padding-bottom: 6px; }

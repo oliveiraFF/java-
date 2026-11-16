@@ -100,7 +100,10 @@ def main() -> None:
     ap.add_argument("--data", default="ml/data/processed/emails.csv")
     ap.add_argument("--artifacts", default="ml/artifacts")
     ap.add_argument("--reports", default="ml/reports")
+    ap.add_argument("--target", choices=["malicious", "phish"], default="malicious",
+                    help="malicious：钓鱼+诈骗+垃圾 vs 正常（原始标签）；phish：钓鱼+诈骗 vs 其他（垃圾/营销邮件算负样本）")
     args = ap.parse_args()
+    suffix = "" if args.target == "malicious" else "_phish"
     art, rep = Path(args.artifacts), Path(args.reports)
     art.mkdir(parents=True, exist_ok=True)
     rep.mkdir(parents=True, exist_ok=True)
@@ -117,15 +120,22 @@ def main() -> None:
     Xtr = vec.fit_transform(model_input(tr))
     Xva, Xte = vec.transform(model_input(va)), vec.transform(model_input(te))
     print(f"TF-IDF 词表 {len(vec.vocabulary_)}，耗时 {time.perf_counter() - t0:.1f}s")
-    ytr, yva, yte = tr["label"].to_numpy(), va["label"].to_numpy(), te["label"].to_numpy()
+    if args.target == "phish":
+        # 只把钓鱼和诈骗当作正样本：模型学"是否在诱导用户"，而不是"像不像广告"
+        ytr, yva, yte = (x["kind"].isin(["phishing", "fraud"]).astype(int).to_numpy() for x in (tr, va, te))
+        cw = "balanced"  # 正样本只占约 6%
+    else:
+        ytr, yva, yte = tr["label"].to_numpy(), va["label"].to_numpy(), te["label"].to_numpy()
+        cw = None
+    print(f"目标 {args.target}：训练集正样本比例 {ytr.mean():.3f}")
 
     focus = te["kind"].isin(["phishing", "fraud", "ham"]).to_numpy()
 
     models = {
         "naive_bayes": MultinomialNB(alpha=0.1),
-        "logistic_regression": LogisticRegression(C=8.0, max_iter=2000, solver="liblinear"),
-        "linear_svm": LinearSVC(C=0.5),
-        "random_forest": RandomForestClassifier(n_estimators=200, max_features="sqrt", n_jobs=-1, random_state=SEED),
+        "logistic_regression": LogisticRegression(C=8.0, max_iter=2000, solver="liblinear", class_weight=cw),
+        "linear_svm": LinearSVC(C=0.5, class_weight=cw),
+        "random_forest": RandomForestClassifier(n_estimators=200, max_features="sqrt", n_jobs=-1, random_state=SEED, class_weight=cw),
     }
 
     results: dict = {
@@ -155,6 +165,8 @@ def main() -> None:
             "per_kind_recall": {
                 k: float(((ste[te["kind"] == k] >= thr0)).mean()) for k in ("phishing", "fraud", "spam")
             },
+            # 各类邮件被判为正样本的比例；phish 目标下 spam/ham 的这个值就是误报率
+            "flag_rate": {k: float((ste[(te["kind"] == k).to_numpy()] >= thr0).mean()) for k in ("phishing", "fraud", "spam", "ham")},
             "top_terms": top_terms(model, vec),
         }
         results["models"][name] = r
@@ -166,31 +178,34 @@ def main() -> None:
             best_name, best_f1 = name, m["f1"]
 
     results["best"] = best_name
-    joblib.dump({"vectorizer": vec, "model": models[best_name], "name": best_name,
+    results["target"] = args.target
+    joblib.dump({"vectorizer": vec, "model": models[best_name], "name": best_name, "target": args.target,
                  "threshold": default_threshold(models[best_name]),
                  "threshold_fpr1": results["models"][best_name]["val_threshold_fpr1"]},
-                art / "baseline_tfidf.joblib", compress=3)
+                art / f"baseline_tfidf{suffix}.joblib", compress=3)
 
     def conv(o):
         if isinstance(o, (np.floating, np.integer)):
             return o.item()
         raise TypeError(type(o))
 
-    (rep / "baseline_metrics.json").write_text(json.dumps(results, ensure_ascii=False, indent=2, default=conv), encoding="utf-8")
-    write_report(results, rep / "baseline.md")
-    print(f"最佳模型：{best_name}，已保存到 {art / 'baseline_tfidf.joblib'}")
+    (rep / f"baseline{suffix}_metrics.json").write_text(json.dumps(results, ensure_ascii=False, indent=2, default=conv), encoding="utf-8")
+    write_report(results, rep / f"baseline{suffix}.md")
+    print(f"最佳模型：{best_name}，已保存到 {art / f'baseline_tfidf{suffix}.joblib'}")
 
 
 def write_report(res: dict, path: Path) -> None:
     zh = {"naive_bayes": "朴素贝叶斯", "logistic_regression": "逻辑回归", "linear_svm": "线性 SVM", "random_forest": "随机森林"}
     d = res["data"]
+    phish = res.get("target") == "phish"
     lines = [
-        "# 基线实验结果：TF-IDF + 传统机器学习",
+        "# 基线实验结果：TF-IDF + 传统机器学习" + ("（目标：钓鱼 vs 非钓鱼）" if phish else ""),
         "",
         f"数据：训练 {d['train']} / 验证 {d['val']} / 测试 {d['test']} 封；钓鱼专项测试子集 {d['test_focus']} 封；TF-IDF 词表 {d['vocab']}。",
         "特征：主题 + 正文，词级 1–2 gram，sublinear TF，max_features=100k。",
+        *(["正样本只有钓鱼与诈骗邮件；垃圾/营销邮件和正常邮件都是负样本；分类器使用类别平衡权重。"] if phish else []),
         "",
-        "## 1. 全量测试集（恶意 vs 正常，默认阈值）",
+        "## 1. 全量测试集（" + ("钓鱼+诈骗 vs 其他" if phish else "恶意 vs 正常") + "，默认阈值）",
         "",
         "| 模型 | 准确率 | 精确率 | 召回率 | F1 | ROC-AUC | PR-AUC | 误报率 | 训练耗时(s) | 推理(ms/封) |",
         "|---|---|---|---|---|---|---|---|---|---|",
@@ -209,10 +224,12 @@ def write_report(res: dict, path: Path) -> None:
     for k, r in res["models"].items():
         m = r["test_at_fpr1"]
         lines.append(f"| {zh[k]} | {m['fpr']:.4f} | {m['recall']:.4f} | {m['precision']:.4f} | {m['f1']:.4f} |")
-    lines += ["", "## 4. 按类型的召回率（默认阈值）", "", "| 模型 | 钓鱼 phishing | 诈骗 fraud | 垃圾 spam |", "|---|---|---|---|"]
+    lines += ["", "## 4. 各类邮件被判为正样本的比例（默认阈值）", "",
+              "钓鱼、诈骗两列越高越好；" + ("垃圾/营销、正常两列就是误报率，越低越好。" if phish else "垃圾一列在此目标下也算正样本。"), "",
+              "| 模型 | 钓鱼 phishing | 诈骗 fraud | 垃圾/营销 spam | 正常 ham |", "|---|---|---|---|---|"]
     for k, r in res["models"].items():
-        p = r["per_kind_recall"]
-        lines.append(f"| {zh[k]} | {p['phishing']:.4f} | {p['fraud']:.4f} | {p['spam']:.4f} |")
+        p = r.get("flag_rate") or {**r["per_kind_recall"], "ham": float("nan")}
+        lines.append(f"| {zh[k]} | {p['phishing']:.4f} | {p['fraud']:.4f} | {p['spam']:.4f} | {p['ham']:.4f} |")
     lines += ["", "## 5. 模型最依赖的词（可解释性示例）", ""]
     for k, r in res["models"].items():
         t = r["top_terms"]

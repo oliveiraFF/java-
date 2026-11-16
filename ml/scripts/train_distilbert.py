@@ -78,6 +78,8 @@ def main() -> None:
     ap.add_argument("--unseen", default=None,
                     help="未见恶意类型实验：训练时排除该来源（nazario / nigerian），测试集 = 该来源全部邮件 + 标准测试集中的正常邮件")
     ap.add_argument("--limit", type=int, default=0, help="只用前 N 条训练数据（冒烟测试）")
+    ap.add_argument("--target", choices=["malicious", "phish"], default="malicious",
+                    help="phish：只把钓鱼和诈骗当作正样本，垃圾/营销邮件算负样本")
     ap.add_argument("--tag", default=None)
     args = ap.parse_args()
     if args.holdout and args.unseen:
@@ -86,10 +88,14 @@ def main() -> None:
     set_seed(SEED)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     base_tag = f"loso_{args.holdout}" if args.holdout else f"unseen_{args.unseen}" if args.unseen else "standard"
+    if args.target == "phish":
+        base_tag = "phish" if base_tag == "standard" else f"phish_{base_tag}"
     tag = args.tag or base_tag + (f"_limit{args.limit}" if args.limit else "")
     print(f"设备 {device}{' · ' + torch.cuda.get_device_name(0) if device.type == 'cuda' else ''}，实验 {tag}")
 
     df = load_emails()
+    if args.target == "phish":
+        df["label"] = df["kind"].isin(["phishing", "fraud"]).astype(int)
     tr, va, te = (df[df["split"] == s] for s in ("train", "val", "test"))
     if args.holdout:
         tr, va = tr[tr["source"] != args.holdout], va[va["source"] != args.holdout]
@@ -115,6 +121,11 @@ def main() -> None:
     total = len(train_loader) * args.epochs
     sched = get_linear_schedule_with_warmup(optim, int(total * args.warmup), total)
     scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda")
+    # phish 目标下正样本只占约 6%：正样本损失加权（取类别比例的平方根，避免过度矫正）
+    pos_ratio = float(tr["label"].mean())
+    cls_w = torch.tensor([1.0, ((1 - pos_ratio) / pos_ratio) ** 0.5 if args.target == "phish" else 1.0], device=device)
+    loss_fn = torch.nn.CrossEntropyLoss(weight=cls_w)
+    print(f"训练集正样本比例 {pos_ratio:.3f}，类别权重 {cls_w.tolist()}")
 
     out_dir = Path("ml/artifacts") / f"distilbert_{tag}"
     best_f1, history = -1.0, []
@@ -125,8 +136,10 @@ def main() -> None:
         t_ep, running = time.perf_counter(), 0.0
         for batch in train_loader:
             batch = {k: v.to(device, non_blocking=True) for k, v in batch.items()}
+            labels = batch.pop("labels")
             with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=device.type == "cuda"):
-                loss = model(**batch).loss
+                logits = model(**batch).logits
+            loss = loss_fn(logits.float(), labels)
             optim.zero_grad(set_to_none=True)
             scaler.scale(loss).backward()
             scaler.unscale_(optim)
@@ -174,6 +187,9 @@ def main() -> None:
         focus = te["kind"].isin(["phishing", "fraud", "ham"]).to_numpy()
         res["test_focus"] = metrics(yte[focus], st[focus], 0.5)
         res["per_kind_recall"] = {k: float((st[(te["kind"] == k).to_numpy()] >= 0.5).mean()) for k in ("phishing", "fraud", "spam") if (te["kind"] == k).any()}
+        # 各类邮件被判为正样本的比例；phish 目标下 spam/ham 的值就是误报率
+        res["flag_rate"] = {k: float((st[(te["kind"] == k).to_numpy()] >= 0.5).mean()) for k in ("phishing", "fraud", "spam", "ham")}
+    res["target"] = args.target
 
     save_json(res, Path("ml/reports") / f"distilbert_{tag}.json")
     # 保存每封测试邮件的分数，供融合实验使用
