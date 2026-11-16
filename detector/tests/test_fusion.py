@@ -14,16 +14,22 @@ def test_rules_only_when_no_model():
     assert v.risk_score == 60 and v.verdict == "suspicious"
 
 
-def test_model_and_rules_combined():
-    v = fuse(rr(50), {"baseline": 0.9})
-    assert v.risk_score == round(100 * (0.4 * 0.5 + 0.6 * 0.9))  # 74
+def test_model_and_rules_combined_noisy_or():
+    v = fuse(rr(50), {"baseline": 0.6})
+    assert v.risk_score == round(100 * (1 - 0.4 * (1 - 0.45)))  # 78
     assert v.verdict == "suspicious"
 
 
-def test_confident_model_not_dragged_down_by_missing_rules():
+def test_no_rule_hit_equals_model_probability():
+    # 规则未命中时，风险分就是模型概率，不会被打折扣
+    assert fuse(rr(0), {"baseline": 0.7}).risk_score == 70
     v = fuse(rr(0), {"baseline": 0.99})
-    assert v.verdict == "phishing"
-    assert "语义" in v.summary
+    assert v.verdict == "phishing" and "语义" in v.summary
+
+
+def test_rules_only_raise_risk():
+    for p in (0.1, 0.5, 0.9):
+        assert fuse(rr(30), {"m": p}).risk_score >= fuse(rr(0), {"m": p}).risk_score
 
 
 def test_critical_rule_floor():

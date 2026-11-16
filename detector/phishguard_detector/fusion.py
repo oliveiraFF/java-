@@ -1,11 +1,16 @@
 """融合打分：规则分 + 模型概率 → 风险分（0–100）与判定。
 
-公式（开发文档 7.5）：
-    S = 100 × (w_r · R/100 + w_m · P)，P 为可用模型概率中的最大值
+公式（noisy-OR，把规则和模型视为两条相互独立的证据）：
+    r = rule_confidence × R/100            规则分折算为规则层的置信度
+    S = 100 × (1 − (1 − P) × (1 − r))      P 为可用模型概率中的最大值
     命中关键规则 → S = max(S, 90)
     命中白名单且身份认证未失败 → S -= 20
 判定：S ≥ 80 钓鱼；50 ≤ S < 80 可疑；否则安全。
-权重与阈值后续在验证集上网格搜索确定，这里是默认值。
+
+最初按开发文档使用加权平均 S = 100 × (0.4·R/100 + 0.6·P)。实验 4 发现：
+规则未命中时，模型 70% 的把握只能得到 42 分，永远到不了"可疑"阈值，
+等于把模型自己的判断打了折扣。noisy-OR 在规则未命中时 S 就等于模型概率，
+规则命中只会增加风险，不会降低。详见 docs/实验记录.md 实验 4。
 """
 from __future__ import annotations
 
@@ -18,8 +23,7 @@ VERDICT_ZH = {"phishing": "钓鱼", "suspicious": "可疑", "safe": "安全"}
 
 @dataclass
 class FusionConfig:
-    w_rules: float = 0.4
-    w_model: float = 0.6
+    rule_confidence: float = 0.9  # 规则分 100 时规则层的置信度
     phishing_threshold: int = 80
     suspicious_threshold: int = 50
     critical_floor: int = 90
@@ -39,19 +43,28 @@ class Verdict:
         return asdict(self)
 
 
+def combine(rule_score: int, p: float | None, *, critical: bool = False, cfg: FusionConfig | None = None) -> float:
+    """规则分与模型概率的连续融合结果（0–1），不取整。
+
+    实验评估直接使用这个连续值：DistilBERT 的概率高度饱和（大量 0.001、0.999），
+    若先取整到 0–100，正常邮件之间的细微排序会全部丢失。
+    """
+    cfg = cfg or FusionConfig()
+    if p is None:
+        s = rule_score / 100.0  # 没有可用模型时只靠规则
+    else:
+        r = cfg.rule_confidence * rule_score / 100.0
+        s = 1.0 - (1.0 - p) * (1.0 - r)
+    if critical:
+        s = max(s, cfg.critical_floor / 100.0)
+    return min(1.0, max(0.0, s))
+
+
 def fuse(rules: RuleResult, model_scores: dict[str, float], *, allowlisted: bool = False,
          auth_failed: bool = False, cfg: FusionConfig | None = None) -> Verdict:
     cfg = cfg or FusionConfig()
     p = max(model_scores.values()) if model_scores else None
-    if p is None:
-        # 没有可用模型时只靠规则：规则分直接作为风险分
-        s = float(rules.score)
-    else:
-        s = 100.0 * (cfg.w_rules * rules.score / 100.0 + cfg.w_model * p)
-        # 模型非常确信时，不让"规则未命中"把分数拉得过低
-        s = max(s, 100.0 * p * 0.85) if p >= 0.95 else s
-    if rules.critical:
-        s = max(s, cfg.critical_floor)
+    s = 100.0 * combine(rules.score, p, critical=rules.critical, cfg=cfg)
     if allowlisted and not auth_failed:
         s -= cfg.allowlist_discount
     score = int(round(min(100.0, max(0.0, s))))

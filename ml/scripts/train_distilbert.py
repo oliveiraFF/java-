@@ -19,6 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
 import torch  # noqa: E402
 from torch.utils.data import DataLoader  # noqa: E402
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, get_linear_schedule_with_warmup  # noqa: E402
@@ -74,13 +75,18 @@ def main() -> None:
     ap.add_argument("--lr", type=float, default=3e-5)
     ap.add_argument("--warmup", type=float, default=0.06)
     ap.add_argument("--holdout", default=None, help="留一来源实验：训练时排除该来源，并在该来源全部邮件上测试")
+    ap.add_argument("--unseen", default=None,
+                    help="未见恶意类型实验：训练时排除该来源（nazario / nigerian），测试集 = 该来源全部邮件 + 标准测试集中的正常邮件")
     ap.add_argument("--limit", type=int, default=0, help="只用前 N 条训练数据（冒烟测试）")
     ap.add_argument("--tag", default=None)
     args = ap.parse_args()
+    if args.holdout and args.unseen:
+        ap.error("--holdout 与 --unseen 不能同时使用")
 
     set_seed(SEED)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    tag = args.tag or ("standard" if not args.holdout else f"loso_{args.holdout}") + (f"_limit{args.limit}" if args.limit else "")
+    base_tag = f"loso_{args.holdout}" if args.holdout else f"unseen_{args.unseen}" if args.unseen else "standard"
+    tag = args.tag or base_tag + (f"_limit{args.limit}" if args.limit else "")
     print(f"设备 {device}{' · ' + torch.cuda.get_device_name(0) if device.type == 'cuda' else ''}，实验 {tag}")
 
     df = load_emails()
@@ -88,6 +94,9 @@ def main() -> None:
     if args.holdout:
         tr, va = tr[tr["source"] != args.holdout], va[va["source"] != args.holdout]
         te = df[df["source"] == args.holdout]
+    if args.unseen:
+        tr, va = tr[tr["source"] != args.unseen], va[va["source"] != args.unseen]
+        te = pd.concat([df[df["source"] == args.unseen], te[te["label"] == 0]])
     if args.limit:
         tr = tr.sample(n=min(args.limit, len(tr)), random_state=SEED)
         va = va.sample(n=min(max(args.limit // 5, 200), len(va)), random_state=SEED)
@@ -154,19 +163,23 @@ def main() -> None:
 
     res = {
         "tag": tag, "model": args.model, "max_len": args.max_len, "epochs": args.epochs, "bs": args.bs, "lr": args.lr,
-        "holdout": args.holdout, "data": {"train": len(tr), "val": len(va), "test": len(te)},
+        "holdout": args.holdout, "unseen": args.unseen, "data": {"train": len(tr), "val": len(va), "test": len(te)},
         "train_seconds": round(train_seconds, 1), "infer_ms_per_email": round(infer_ms, 3),
         "history": history,
         "test": metrics(yte, st, 0.5),
         "val_threshold_fpr1": thr_low,
         "test_at_fpr1": metrics(yte, st, thr_low),
     }
-    if not args.holdout:
+    if not args.holdout and not args.unseen:
         focus = te["kind"].isin(["phishing", "fraud", "ham"]).to_numpy()
         res["test_focus"] = metrics(yte[focus], st[focus], 0.5)
         res["per_kind_recall"] = {k: float((st[(te["kind"] == k).to_numpy()] >= 0.5).mean()) for k in ("phishing", "fraud", "spam") if (te["kind"] == k).any()}
 
     save_json(res, Path("ml/reports") / f"distilbert_{tag}.json")
+    # 保存每封测试邮件的分数，供融合实验使用
+    score_dir = Path("ml/artifacts/scores")
+    score_dir.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame({"id": te["id"], "score": st}).to_csv(score_dir / f"distilbert_{tag}.csv", index=False)
     m = res["test"]
     print(f"测试集 F1={m['f1']:.4f} P={m['precision']:.4f} R={m['recall']:.4f} AUC={fmt(m['roc_auc'])} FPR={fmt(m['fpr'])}")
     if "test_focus" in res:
