@@ -57,6 +57,14 @@ def test_parse_phishing_eml():
     assert att.filename == "invoice.pdf.exe" and att.size > 0 and len(att.sha256) == 64
 
 
+def test_block_elements_do_not_glue_text():
+    raw = (b"Subject: x\r\nContent-Type: text/html; charset=utf-8\r\n\r\n"
+           b"<p>it will be suspended.</p><a href=\"http://1.2.3.4/\">https://www.paypal.com/</a>")
+    pe = parse_bytes(raw)
+    assert "suspended.https" not in pe.text
+    assert "suspended.\nhttps://www.paypal.com/" in pe.text
+
+
 def test_parse_plain_and_malformed():
     raw = b"Subject: hi\r\nFrom: bob@x.com\r\nContent-Type: text/plain; charset=unknown-8bit\r\n\r\nvisit www.example.com/a now\r\n"
     pe = parse_bytes(raw)

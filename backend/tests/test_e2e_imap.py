@@ -2,7 +2,8 @@
 
 需要先启动：docker compose --profile test up -d greenmail
 并设置 GREENMAIL_HOST（compose 网络内为 greenmail）。未设置时跳过。
-测试账号 alice@corp.test / alice-pass 仅存在于本地 GreenMail 容器。
+测试账号 e2e@corp.test / e2e-pass 仅存在于本地 GreenMail 容器，专供本测试使用
+（alice@corp.test 留给开发环境演示数据）。测试开始前会清空该账号，可以反复运行。
 """
 import os
 import smtplib
@@ -13,7 +14,27 @@ import pytest
 
 HOST = os.environ.get("GREENMAIL_HOST")
 pytestmark = pytest.mark.skipif(not HOST, reason="未设置 GREENMAIL_HOST，跳过 IMAP 端到端测试")
-USER, PASS = "alice@corp.test", "alice-pass"
+USER, PASS = "e2e@corp.test", "e2e-pass"
+QUARANTINE = "PhishGuard-隔离"
+
+
+def reset_mailbox() -> None:
+    """清空测试账号的收件箱和隔离文件夹中的邮件，保证测试可重复运行。
+
+    只删除邮件、保留文件夹：GreenMail 在删除含邮件的文件夹时会直接断开连接。
+    """
+    from imapclient import IMAPClient
+
+    with IMAPClient(HOST, port=3143, ssl=False, timeout=10) as c:
+        c.login(USER, PASS)
+        for folder in ("INBOX", QUARANTINE):
+            if not c.folder_exists(folder):
+                continue
+            c.select_folder(folder)
+            uids = c.search(["ALL"])
+            if uids:
+                c.delete_messages(uids)
+                c.expunge()
 
 
 def send(subject: str, sender: str, html: str | None = None, text: str | None = None, headers: dict | None = None):
@@ -48,11 +69,12 @@ def test_sync_detect_quarantine_release(client, admin_h, operator_h):
     from app.models import Email
     from app.worker.tasks import _sync
 
+    reset_mailbox()
     r = client.post("/api/v1/mailboxes", headers=admin_h, json={
         "address": USER, "imap_host": HOST, "imap_port": 3143, "use_ssl": False, "password": PASS})
     assert r.status_code == 201, r.text
     mb = r.json()
-    assert imap_folder_subjects("PhishGuard-隔离") == []  # 接入时已自动创建空的隔离文件夹
+    assert imap_folder_subjects(QUARANTINE) == []  # 接入时已自动创建空的隔离文件夹
     assert client.put("/api/v1/settings", headers=admin_h, json={"observe_mode": False}).status_code == 200
 
     send("Your PayPal account has been limited", '"PayPal" <service@paypa1.com>',
@@ -73,7 +95,7 @@ def test_sync_detect_quarantine_release(client, admin_h, operator_h):
         assert ok.detection.verdict.value == "safe" and ok.status.value == "detected"
         phish_id = phish.id
 
-    assert "Your PayPal account has been limited" in imap_folder_subjects("PhishGuard-隔离")
+    assert "Your PayPal account has been limited" in imap_folder_subjects(QUARANTINE)
     assert "Your PayPal account has been limited" not in imap_folder_subjects("INBOX")
     assert "Lunch tomorrow" in imap_folder_subjects("INBOX")
 

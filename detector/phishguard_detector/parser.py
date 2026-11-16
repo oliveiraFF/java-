@@ -108,6 +108,9 @@ class _HtmlExtractor(HTMLParser):
             self.parts.append("\n")
 
     def handle_endtag(self, tag):
+        if tag in self._BLOCK:
+            # 块级元素结束也要换行，否则 <p>…</p><a>…</a> 的文字会粘在一起
+            self.parts.append("\n")
         if tag in self._SKIP and self._skip:
             self._skip -= 1
         elif tag == "a" and self._a_href is not None:

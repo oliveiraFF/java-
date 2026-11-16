@@ -1,0 +1,16 @@
+[
+  {
+    "date": "2026-11-16",
+    "page": "frontend/ 工作台（9 页）",
+    "register": "product",
+    "axes": {
+      "A_palette": "冷钢灰深色底 + 青色系统色；红/琥珀/绿只表示风险等级",
+      "B_type": "中文标签用无衬线，数据（地址、时间、分数、规则 ID）用 JetBrains Mono",
+      "C_layout": "左侧深色导航 + 内容区卡片；总览为指标卡 + 趋势/实时终端 + 规则/邮箱状态",
+      "D_motion": "仅反馈类：数字滚动、实时检测终端逐行进入、骨架屏；尊重减少动态效果设置",
+      "E_material": "安全运营中心 + 终端"
+    },
+    "dials": { "SOUL": 6, "SPECTACLE": 2, "DENSITY": 7 },
+    "rejected_default": "浅色后台 + 默认蓝色；装饰性扫描线/故障闪烁"
+  }
+]
