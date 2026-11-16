@@ -78,6 +78,16 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # 测试用模拟邮件服务器（IMAP 3143 / SMTP 3025），默认不启动：docker compose --profile test up -d greenmail
+  greenmail:
+    profiles: ["test"]
+    image: greenmail/standalone:2.1.2
+    environment:
+      GREENMAIL_OPTS: "-Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=alice:alice-pass@corp.test -Dgreenmail.users.login=email -Dgreenmail.verbose=false"
+    ports:
+      - "127.0.0.1:3025:3025"
+      - "127.0.0.1:3143:3143"
+
   # 训练与实验环境，默认不启动：docker compose --profile ml run --rm ml <命令>
   ml:
     profiles: ["ml"]

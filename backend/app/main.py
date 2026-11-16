@@ -1,9 +1,13 @@
+import logging
+
 from fastapi import FastAPI
 
 from app import __version__
 from app.api.v1 import router as v1_router
 from app.core.config import get_settings
+from app.core.errors import install_handlers
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 settings = get_settings()
 
 app = FastAPI(
@@ -13,4 +17,5 @@ app = FastAPI(
     redoc_url=None,
     openapi_url="/api/openapi.json" if settings.enable_docs else None,
 )
+install_handlers(app)
 app.include_router(v1_router)

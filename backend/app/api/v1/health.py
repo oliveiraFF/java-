@@ -34,9 +34,15 @@ def _check_redis() -> dict:
 
 
 def _check_models() -> dict:
+    from app.services.detection import get_engine  # 延迟导入：首次调用时加载模型
+
     model_dir = get_settings().model_dir
-    files = sorted(os.listdir(model_dir)) if os.path.isdir(model_dir) else []
-    return {"dir": model_dir, "files": files, "loaded": False}
+    files = sorted(f for f in os.listdir(model_dir) if f.endswith(".joblib")) if os.path.isdir(model_dir) else []
+    try:
+        loaded = [m.name for m in get_engine().models]
+        return {"dir": model_dir, "files": files, "loaded": loaded, "mode": "规则 + 模型" if loaded else "仅规则"}
+    except Exception as exc:  # noqa: BLE001
+        return {"dir": model_dir, "files": files, "loaded": [], "mode": "仅规则", "error": type(exc).__name__}
 
 
 @router.get("/health")

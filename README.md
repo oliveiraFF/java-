@@ -33,7 +33,12 @@ docker compose --profile ml run --rm ml python -I ml/scripts/prepare_data.py
 
 ## 测试
 
+后端测试使用独立的 `phishguard_test` 数据库（自动创建、结束后删除），不影响开发数据。端到端测试需要先启动本地模拟邮件服务器 GreenMail：
+
 ```bash
-docker compose run --rm --no-deps api pytest -q
+docker compose --profile test up -d greenmail
+docker compose run --rm -e GREENMAIL_HOST=greenmail api pytest -q
 docker compose run --rm --no-deps api sh -c "cd /app/detector && pytest -q tests"
 ```
+
+不设置 `GREENMAIL_HOST` 时，端到端测试会自动跳过。

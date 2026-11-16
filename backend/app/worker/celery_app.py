@@ -1,11 +1,12 @@
-"""Celery 应用。M0 阶段只有心跳任务，IMAP 同步、检测、处置任务在 M2 加入。"""
+"""Celery 应用与定时任务。"""
 from celery import Celery
+from celery.schedules import crontab
 
 from app.core.config import get_settings
 
 settings = get_settings()
 
-celery_app = Celery("phishguard", broker=settings.redis_url, backend=settings.redis_url)
+celery_app = Celery("phishguard", broker=settings.redis_url, backend=settings.redis_url, include=["app.worker.tasks"])
 celery_app.conf.update(
     task_serializer="json",
     result_serializer="json",
@@ -17,6 +18,8 @@ celery_app.conf.update(
     result_expires=3600,
     beat_schedule={
         "heartbeat": {"task": "phishguard.heartbeat", "schedule": 60.0},
+        "sync-all-mailboxes": {"task": "phishguard.sync_all", "schedule": float(settings.sync_interval_seconds)},
+        "cleanup-raw-mail": {"task": "phishguard.cleanup_raw", "schedule": crontab(hour=3, minute=30)},
     },
 )
 

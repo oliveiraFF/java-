@@ -12,3 +12,6 @@ PyJWT==2.10.1
 cryptography==44.0.0
 python-multipart==0.0.19
 imapclient==3.0.1
+# 加载 TF-IDF 基线模型；版本必须与训练时一致（ml/requirements.txt）
+scikit-learn==1.5.2
+numpy==2.1.3
