@@ -102,8 +102,10 @@ def main() -> None:
     ap.add_argument("--reports", default="ml/reports")
     ap.add_argument("--target", choices=["malicious", "phish"], default="malicious",
                     help="malicious：钓鱼+诈骗+垃圾 vs 正常（原始标签）；phish：钓鱼+诈骗 vs 其他（垃圾/营销邮件算负样本）")
+    ap.add_argument("--tokenizer", choices=["word", "mixed"], default="word",
+                    help="word：按英文词切分（原始做法）；mixed：英文按词、中文按单字和相邻两字切分，用于中英文混合数据")
     args = ap.parse_args()
-    suffix = "" if args.target == "malicious" else "_phish"
+    suffix = ("" if args.target == "malicious" else "_phish") + ("_mixed" if args.tokenizer == "mixed" else "")
     art, rep = Path(args.artifacts), Path(args.reports)
     art.mkdir(parents=True, exist_ok=True)
     rep.mkdir(parents=True, exist_ok=True)
@@ -113,10 +115,16 @@ def main() -> None:
     print(f"训练 {len(tr)} / 验证 {len(va)} / 测试 {len(te)}")
 
     t0 = time.perf_counter()
-    vec = TfidfVectorizer(
-        lowercase=True, ngram_range=(1, 2), min_df=3, max_df=0.9, max_features=100_000,
-        sublinear_tf=True, strip_accents="unicode", token_pattern=r"(?u)\b\w\w+\b", dtype=np.float32,
-    )
+    if args.tokenizer == "mixed":
+        from phishguard_detector.text import tokenize_mixed  # 模型文件会引用这个函数，必须来自检测引擎包
+
+        vec = TfidfVectorizer(tokenizer=tokenize_mixed, token_pattern=None, lowercase=False, ngram_range=(1, 1),
+                              min_df=3, max_df=0.9, max_features=150_000, sublinear_tf=True, dtype=np.float32)
+    else:
+        vec = TfidfVectorizer(
+            lowercase=True, ngram_range=(1, 2), min_df=3, max_df=0.9, max_features=100_000,
+            sublinear_tf=True, strip_accents="unicode", token_pattern=r"(?u)\b\w\w+\b", dtype=np.float32,
+        )
     Xtr = vec.fit_transform(model_input(tr))
     Xva, Xte = vec.transform(model_input(va)), vec.transform(model_input(te))
     print(f"TF-IDF 词表 {len(vec.vocabulary_)}，耗时 {time.perf_counter() - t0:.1f}s")
@@ -179,6 +187,8 @@ def main() -> None:
 
     results["best"] = best_name
     results["target"] = args.target
+    results["tokenizer"] = args.tokenizer
+    results["data_file"] = args.data
     joblib.dump({"vectorizer": vec, "model": models[best_name], "name": best_name, "target": args.target,
                  "threshold": default_threshold(models[best_name]),
                  "threshold_fpr1": results["models"][best_name]["val_threshold_fpr1"]},

@@ -65,6 +65,15 @@ def test_block_elements_do_not_glue_text():
     assert "suspended.\nhttps://www.paypal.com/" in pe.text
 
 
+def test_tokenize_mixed():
+    from phishguard_detector.text import tokenize_mixed
+
+    toks = tokenize_mixed("请验证您的PayPal账户 within 24 hours")
+    assert "paypal" in toks and "within" in toks and "24" in toks
+    assert "验证" in toks and "账户" in toks and "验" in toks  # 中文单字与相邻两字
+    assert "请验证您的" not in toks  # 不会把整句中文当成一个词
+
+
 def test_parse_plain_and_malformed():
     raw = b"Subject: hi\r\nFrom: bob@x.com\r\nContent-Type: text/plain; charset=unknown-8bit\r\n\r\nvisit www.example.com/a now\r\n"
     pe = parse_bytes(raw)

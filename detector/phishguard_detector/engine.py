@@ -77,7 +77,8 @@ class Engine:
         在真实邮箱上误报率很高（见 docs/实验记录.md 实验 5），只在没有新模型时作为后备。
         """
         models: list[TextModel] = []
-        for name in ("baseline_tfidf_phish.joblib", "baseline_tfidf.joblib"):
+        # 中英文混合训练的模型最优先（见实验 6），其次英文"钓鱼 vs 非钓鱼"，最后是原始标签模型
+        for name in ("baseline_tfidf_phish_mixed.joblib", "baseline_tfidf_phish.joblib", "baseline_tfidf.joblib"):
             path = Path(model_dir) / name
             if path.exists():
                 models.append(BaselineModel(path))

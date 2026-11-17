@@ -80,6 +80,7 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=0, help="只用前 N 条训练数据（冒烟测试）")
     ap.add_argument("--target", choices=["malicious", "phish"], default="malicious",
                     help="phish：只把钓鱼和诈骗当作正样本，垃圾/营销邮件算负样本")
+    ap.add_argument("--data", default="ml/data/processed/emails.csv", help="训练数据，混合中英文时用 emails_mixed.csv")
     ap.add_argument("--tag", default=None)
     args = ap.parse_args()
     if args.holdout and args.unseen:
@@ -93,7 +94,7 @@ def main() -> None:
     tag = args.tag or base_tag + (f"_limit{args.limit}" if args.limit else "")
     print(f"设备 {device}{' · ' + torch.cuda.get_device_name(0) if device.type == 'cuda' else ''}，实验 {tag}")
 
-    df = load_emails()
+    df = load_emails(args.data)
     if args.target == "phish":
         df["label"] = df["kind"].isin(["phishing", "fraud"]).astype(int)
     tr, va, te = (df[df["split"] == s] for s in ("train", "val", "test"))
