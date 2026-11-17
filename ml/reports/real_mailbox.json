@@ -1,6 +1,6 @@
 {
   "name": "QQ 邮箱最近 50 封",
-  "n": 50,
+  "n": 51,
   "all_legitimate": true,
   "rules_only": {
     "flag_ge50": 0,
@@ -12,7 +12,7 @@
       "label": "TF-IDF（恶意 vs 正常，原始标签）",
       "model_ge50": 33,
       "model_ge80": 11,
-      "model_median": 0.6272330731002471,
+      "model_median": 0.6165561588078264,
       "system_suspicious_or_more": 34,
       "system_phishing": 13
     },
@@ -20,15 +20,15 @@
       "label": "TF-IDF（钓鱼 vs 非钓鱼）",
       "model_ge50": 1,
       "model_ge80": 1,
-      "model_median": 0.23084473621017676,
-      "system_suspicious_or_more": 5,
+      "model_median": 0.22942401116300598,
+      "system_suspicious_or_more": 4,
       "system_phishing": 1
     },
     "bert_malicious": {
       "label": "DistilBERT（恶意 vs 正常，原始标签）",
       "model_ge50": 25,
       "model_ge80": 24,
-      "model_median": 0.5116231441497803,
+      "model_median": 0.2403285950422287,
       "system_suspicious_or_more": 25,
       "system_phishing": 25
     },
@@ -36,9 +36,25 @@
       "label": "DistilBERT（钓鱼 vs 非钓鱼）",
       "model_ge50": 23,
       "model_ge80": 23,
-      "model_median": 0.20333081483840942,
+      "model_median": 0.1973671019077301,
       "system_suspicious_or_more": 23,
       "system_phishing": 23
+    },
+    "tfidf_phish_mixed": {
+      "label": "TF-IDF（中英混合，钓鱼 vs 非钓鱼）",
+      "model_ge50": 4,
+      "model_ge80": 1,
+      "model_median": 0.1845928107281105,
+      "system_suspicious_or_more": 7,
+      "system_phishing": 1
+    },
+    "bert_phish_mixed": {
+      "label": "DistilBERT（中英混合，钓鱼 vs 非钓鱼）",
+      "model_ge50": 10,
+      "model_ge80": 10,
+      "model_median": 0.00014257943257689476,
+      "system_suspicious_or_more": 10,
+      "system_phishing": 10
     }
   }
 }

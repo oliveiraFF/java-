@@ -30,7 +30,31 @@
         "停车罚单",
         "密码重置"
       ],
-      "hw_false_alarms": []
+      "hw_false_alarms": [],
+      "trec06c_ham_fpr": 0.0003641660597232338,
+      "trec06c_spam_fpr": 0.000437636761487965,
+      "synth_phish_recall": 0.16489361702127658
+    },
+    "tfidf_phish_mixed": {
+      "label": "TF-IDF（中英混合，钓鱼 vs 非钓鱼）",
+      "hw_phish_recall": 0.7,
+      "hw_ham_fpr": 0.15,
+      "hw_missed": [
+        "冒充老师",
+        "快递理赔",
+        "刷单返利",
+        "虚假会议",
+        "冒充公检法",
+        "密码重置"
+      ],
+      "hw_false_alarms": [
+        "账单",
+        "快递签收",
+        "安全提醒"
+      ],
+      "trec06c_ham_fpr": 0.0,
+      "trec06c_spam_fpr": 0.0,
+      "synth_phish_recall": 1.0
     },
     "bert_phish": {
       "label": "DistilBERT（英文，钓鱼 vs 非钓鱼）",
@@ -61,7 +85,33 @@
         "公司福利",
         "安全提醒",
         "工资条"
-      ]
+      ],
+      "trec06c_ham_fpr": 0.07538237436270939,
+      "trec06c_spam_fpr": 0.19037199124726478,
+      "synth_phish_recall": 0.7659574468085106
+    },
+    "bert_phish_mixed": {
+      "label": "DistilBERT（中英混合，钓鱼 vs 非钓鱼）",
+      "hw_phish_recall": 0.9,
+      "hw_ham_fpr": 0.45,
+      "hw_missed": [
+        "冒充老师",
+        "刷单返利"
+      ],
+      "hw_false_alarms": [
+        "验证码",
+        "会议通知",
+        "课程通知",
+        "账单",
+        "快递签收",
+        "社区通知",
+        "代码平台",
+        "安全提醒",
+        "工资条"
+      ],
+      "trec06c_ham_fpr": 0.0,
+      "trec06c_spam_fpr": 0.000437636761487965,
+      "synth_phish_recall": 1.0
     }
   }
 }

@@ -32,6 +32,8 @@ MODELS = [
     ("tfidf_phish", "TF-IDF（钓鱼 vs 非钓鱼）", "tfidf", ART / "baseline_tfidf_phish.joblib"),
     ("bert_malicious", "DistilBERT（恶意 vs 正常，原始标签）", "bert", ART / "distilbert_standard"),
     ("bert_phish", "DistilBERT（钓鱼 vs 非钓鱼）", "bert", ART / "distilbert_phish"),
+    ("tfidf_phish_mixed", "TF-IDF（中英混合，钓鱼 vs 非钓鱼）", "tfidf", ART / "baseline_tfidf_phish_mixed.joblib"),
+    ("bert_phish_mixed", "DistilBERT（中英混合，钓鱼 vs 非钓鱼）", "bert", ART / "distilbert_phish_mixed"),
 ]
 
 
