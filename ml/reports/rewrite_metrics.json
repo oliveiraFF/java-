@@ -1,0 +1,182 @@
+{
+  "refused": {
+    "test_en_phish": 0,
+    "test_zh_phish": 1,
+    "test_en_ham": 1,
+    "test_zh_ham": 0
+  },
+  "groups": {
+    "test_en_phish": {
+      "label": "英文钓鱼",
+      "y": 1,
+      "n": 200,
+      "models": {
+        "tfidf_v2": {
+          "label": "TF-IDF v2",
+          "orig": 0.985,
+          "rewrite": 0.98,
+          "median_orig": 0.9391998845741631,
+          "median_rewrite": 0.9425498828174926
+        },
+        "bert_v2": {
+          "label": "DistilBERT v2",
+          "orig": 1.0,
+          "rewrite": 1.0,
+          "median_orig": 0.9998904466629028,
+          "median_rewrite": 0.9998915195465088
+        },
+        "tfidf_v3": {
+          "label": "TF-IDF v3（+改写增强）",
+          "orig": 0.98,
+          "rewrite": 0.98,
+          "median_orig": 0.9379489488496539,
+          "median_rewrite": 0.9425751950959047
+        },
+        "bert_v3": {
+          "label": "DistilBERT v3（+改写增强）",
+          "orig": 0.99,
+          "rewrite": 0.99,
+          "median_orig": 0.9974861145019531,
+          "median_rewrite": 0.9975200891494751
+        }
+      },
+      "rules": {
+        "orig": 0.0,
+        "rewrite": 0.0
+      },
+      "system": {
+        "orig": 0.985,
+        "rewrite": 0.98
+      }
+    },
+    "test_zh_phish": {
+      "label": "中文钓鱼（手写）",
+      "y": 1,
+      "n": 19,
+      "models": {
+        "tfidf_v2": {
+          "label": "TF-IDF v2",
+          "orig": 0.8947368421052632,
+          "rewrite": 0.7894736842105263,
+          "median_orig": 0.6152092844648317,
+          "median_rewrite": 0.5963772018387864
+        },
+        "bert_v2": {
+          "label": "DistilBERT v2",
+          "orig": 0.5263157894736842,
+          "rewrite": 0.5789473684210527,
+          "median_orig": 0.00022429059026762843,
+          "median_rewrite": 0.000563675130251795
+        },
+        "tfidf_v3": {
+          "label": "TF-IDF v3（+改写增强）",
+          "orig": 0.8947368421052632,
+          "rewrite": 0.7894736842105263,
+          "median_orig": 0.6293220342133565,
+          "median_rewrite": 0.6290953990721508
+        },
+        "bert_v3": {
+          "label": "DistilBERT v3（+改写增强）",
+          "orig": 0.7368421052631579,
+          "rewrite": 0.7368421052631579,
+          "median_orig": 0.05000489577651024,
+          "median_rewrite": 0.7474777698516846
+        }
+      },
+      "rules": {
+        "orig": 0.05263157894736842,
+        "rewrite": 0.05263157894736842
+      },
+      "system": {
+        "orig": 0.8947368421052632,
+        "rewrite": 0.8947368421052632
+      }
+    },
+    "test_en_ham": {
+      "label": "英文正常",
+      "y": 0,
+      "n": 99,
+      "models": {
+        "tfidf_v2": {
+          "label": "TF-IDF v2",
+          "orig": 0.0,
+          "rewrite": 0.0,
+          "median_orig": 0.0524877726217005,
+          "median_rewrite": 0.055751576388420696
+        },
+        "bert_v2": {
+          "label": "DistilBERT v2",
+          "orig": 0.010101010101010102,
+          "rewrite": 0.21212121212121213,
+          "median_orig": 1.1889491361216642e-05,
+          "median_rewrite": 2.5466402803431265e-05
+        },
+        "tfidf_v3": {
+          "label": "TF-IDF v3（+改写增强）",
+          "orig": 0.0,
+          "rewrite": 0.0,
+          "median_orig": 0.051088629566184145,
+          "median_rewrite": 0.05686663937169509
+        },
+        "bert_v3": {
+          "label": "DistilBERT v3（+改写增强）",
+          "orig": 0.010101010101010102,
+          "rewrite": 0.0707070707070707,
+          "median_orig": 4.6474400733131915e-05,
+          "median_rewrite": 7.114059553714469e-05
+        }
+      },
+      "rules": {
+        "orig": 0.0,
+        "rewrite": 0.0
+      },
+      "system": {
+        "orig": 0.0,
+        "rewrite": 0.0
+      }
+    },
+    "test_zh_ham": {
+      "label": "中文正常（手写）",
+      "y": 0,
+      "n": 20,
+      "models": {
+        "tfidf_v2": {
+          "label": "TF-IDF v2",
+          "orig": 0.05,
+          "rewrite": 0.0,
+          "median_orig": 0.15971480058244147,
+          "median_rewrite": 0.15895978576378755
+        },
+        "bert_v2": {
+          "label": "DistilBERT v2",
+          "orig": 0.0,
+          "rewrite": 0.0,
+          "median_orig": 1.1177673513884656e-05,
+          "median_rewrite": 1.1150950740557164e-05
+        },
+        "tfidf_v3": {
+          "label": "TF-IDF v3（+改写增强）",
+          "orig": 0.0,
+          "rewrite": 0.0,
+          "median_orig": 0.15315023206996675,
+          "median_rewrite": 0.1623621387711251
+        },
+        "bert_v3": {
+          "label": "DistilBERT v3（+改写增强）",
+          "orig": 0.0,
+          "rewrite": 0.0,
+          "median_orig": 7.01747921993956e-05,
+          "median_rewrite": 6.882808520458639e-05
+        }
+      },
+      "rules": {
+        "orig": 0.0,
+        "rewrite": 0.0
+      },
+      "system": {
+        "orig": 0.05,
+        "rewrite": 0.0
+      }
+    }
+  }
+}
