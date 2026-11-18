@@ -42,6 +42,26 @@ def test_allowlist_discount_but_not_when_auth_failed():
     assert fuse(rr(60), {}, allowlisted=True, auth_failed=True).risk_score == 60
 
 
+def test_baseline_calibration_moves_threshold_keeps_order(tmp_path):
+    import joblib
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.svm import LinearSVC
+
+    from phishguard_detector.engine import BaselineModel
+
+    texts = ["verify your account now", "lunch tomorrow", "urgent password reset", "meeting notes attached"] * 5
+    y = [1, 0, 1, 0] * 5
+    vec = TfidfVectorizer().fit(texts)
+    clf = LinearSVC().fit(vec.transform(texts), y)
+    p = tmp_path / "m.joblib"
+    joblib.dump({"vectorizer": vec, "model": clf, "threshold_fpr1": -0.3}, p)
+    raw = BaselineModel(p).predict_proba(texts[:4])
+    cal = BaselineModel(p, calibrated=True).predict_proba(texts[:4])
+    anchor = 1 / (1 + __import__("math").exp(0.6))
+    assert sorted(range(4), key=raw.__getitem__) == sorted(range(4), key=cal.__getitem__)  # 排序不变
+    assert all((r >= anchor) == (c >= 0.5) for r, c in zip(raw, cal))  # 验证集阈值对应 0.5
+
+
 def test_engine_rules_only():
     eng = Engine()
     d = eng.detect_parsed(parse_text("Account suspended", "Please verify your account immediately at http://198.51.100.9/login"))

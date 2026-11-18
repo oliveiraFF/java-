@@ -26,21 +26,36 @@ class BaselineModel:
 
     name = "baseline"
 
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, calibrated: bool = False):
+        """calibrated=True 时，把训练时在验证集上选出的阈值（误报率 ≤ 1%）映射到 0.5。
+
+        加入大量正常邮件训练后，模型整体打分偏低，固定 0.5 不再合适（实验 7）。
+        映射是单调分段线性的：只移动判定点，不改变邮件之间的排序，
+        这样融合公式和 50 / 80 的判定线都不用改。实验脚本使用原始分数（calibrated=False）。
+        """
         import joblib  # 延迟导入：只有加载模型时才需要 scikit-learn
         import numpy as np
 
         self._np = np
         bundle = joblib.load(path)
         self.vec, self.model = bundle["vectorizer"], bundle["model"]
+        self.anchor: float | None = None
+        if calibrated and bundle.get("threshold_fpr1") is not None:
+            t = float(bundle["threshold_fpr1"])
+            self.anchor = t if hasattr(self.model, "predict_proba") else float(1.0 / (1.0 + np.exp(-2.0 * t)))
+
+    def _raw(self, X):
+        if hasattr(self.model, "predict_proba"):
+            return self.model.predict_proba(X)[:, 1]
+        # 线性 SVM 没有概率输出：把间隔用 sigmoid 映射到 0–1（阈值 0 对应 0.5）
+        return 1.0 / (1.0 + self._np.exp(-2.0 * self.model.decision_function(X)))
 
     def predict_proba(self, texts: list[str]) -> list[float]:
-        X = self.vec.transform(texts)
-        if hasattr(self.model, "predict_proba"):
-            return self.model.predict_proba(X)[:, 1].tolist()
-        # 线性 SVM 没有概率输出：把间隔用 sigmoid 映射到 0–1（阈值 0 对应 0.5）
-        margin = self.model.decision_function(X)
-        return (1.0 / (1.0 + self._np.exp(-2.0 * margin))).tolist()
+        p = self._raw(self.vec.transform(texts))
+        t = self.anchor
+        if t is not None and 0.0 < t < 1.0:
+            p = self._np.where(p < t, 0.5 * p / t, 0.5 + 0.5 * (p - t) / (1.0 - t))
+        return p.tolist()
 
 
 @dataclass
@@ -77,11 +92,13 @@ class Engine:
         在真实邮箱上误报率很高（见 docs/实验记录.md 实验 5），只在没有新模型时作为后备。
         """
         models: list[TextModel] = []
-        # 中英文混合训练的模型最优先（见实验 6），其次英文"钓鱼 vs 非钓鱼"，最后是原始标签模型
-        for name in ("baseline_tfidf_phish_mixed.joblib", "baseline_tfidf_phish.joblib", "baseline_tfidf.joblib"):
+        # 优先级：中英混合 + 通知类正常邮件（实验 7）> 中英混合（实验 6）> 英文"钓鱼 vs 非钓鱼"（实验 5）> 原始标签
+        # "钓鱼 vs 非钓鱼"模型启用验证集阈值校准；原始标签模型保持原样
+        for name, calib in (("baseline_tfidf_phish_mixed2.joblib", True), ("baseline_tfidf_phish_mixed.joblib", True),
+                            ("baseline_tfidf_phish.joblib", True), ("baseline_tfidf.joblib", False)):
             path = Path(model_dir) / name
             if path.exists():
-                models.append(BaselineModel(path))
+                models.append(BaselineModel(path, calibrated=calib))
                 break
         return cls(models, cfg)
 
