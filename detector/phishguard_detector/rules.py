@@ -168,13 +168,20 @@ def _url_at(pe):
     return _first(pe, lambda u: "@" in u.href.split("//", 1)[-1].split("/", 1)[0], lambda u: f"链接中含 @ 符号，真实地址是 @ 后面的部分：{u.href}")
 
 
+def _own_link(pe, u) -> bool:
+    """链接指向已通过 DMARC 认证的发件人自己的域名（例如阿里云邮件里指向 aliyun.com 的链接）。"""
+    return (pe.auth_results.get("dmarc") == "pass" and bool(pe.from_domain) and bool(u.domain)
+            and D.registrable(u.domain) == D.registrable(pe.from_domain))
+
+
 def _url_subdomains(pe):
     # 只数可注册域名之前的层级，避免把 www.cs.waikato.ac.nz 这类正常大学网站误判
-    return _first(pe, lambda u: D.subdomain_depth(u.domain) >= 3, lambda u: f"链接子域名层级过多：{u.domain}")
+    return _first(pe, lambda u: D.subdomain_depth(u.domain) >= 3 and not _own_link(pe, u), lambda u: f"链接子域名层级过多：{u.domain}")
 
 
 def _url_tld(pe):
-    return _first(pe, lambda u: D.tld(u.domain) in D.SUSPICIOUS_TLDS, lambda u: f"链接使用高风险顶级域名 .{D.tld(u.domain)}：{u.domain}")
+    return _first(pe, lambda u: D.tld(u.domain) in D.SUSPICIOUS_TLDS and not _own_link(pe, u),
+                  lambda u: f"链接使用高风险顶级域名 .{D.tld(u.domain)}：{u.domain}")
 
 
 def _url_lookalike(pe):
@@ -187,7 +194,7 @@ def _url_lookalike(pe):
 
 def _url_http_login(pe):
     def is_plain_login(u):
-        if not u.href.lower().startswith("http://"):
+        if not u.href.lower().startswith("http://") or _own_link(pe, u):
             return False
         parts = urlsplit(u.href)
         return bool(LOGIN_PATH.search(parts.path + "?" + parts.query))
@@ -283,9 +290,18 @@ class RuleResult:
     score: int  # 0–100
     critical: bool
     hits: list[RuleHit]
+    trusted_sender: bool = False
 
     def to_dict(self) -> dict:
-        return {"score": self.score, "critical": self.critical, "hits": [asdict(h) for h in self.hits]}
+        return {"score": self.score, "critical": self.critical, "trusted_sender": self.trusted_sender,
+                "hits": [asdict(h) for h in self.hits]}
+
+
+# 发件人身份可信的反证：命中任一条，就不认为发件人可信
+_IDENTITY_RED_FLAGS = {"SENDER_LOOKALIKE", "DISPLAY_NAME_BRAND", "DISPLAY_NAME_EMAIL", "REPLY_TO_MISMATCH", "FREEMAIL_EXEC"}
+# 认证可信时减半的正文话术规则：真实平台的登录提醒、邮箱确认也会用到这些说法
+_WORDING_RULES = {"TEXT_URGENCY", "TEXT_CREDENTIAL", "TEXT_MONEY", "TEXT_THREAT"}
+TRUSTED_NOTE = "（发件人已通过 DMARC 身份认证，且不是仿冒域名，此项权重减半）"
 
 
 def evaluate(pe: ParsedEmail, rules: list[Rule] | None = None) -> RuleResult:
@@ -297,5 +313,18 @@ def evaluate(pe: ParsedEmail, rules: list[Rule] | None = None) -> RuleResult:
             ev = None
         if ev:
             hits.append(RuleHit(r.rule_id, r.name, r.category, r.weight, ev, r.critical))
+
+    # 发件人身份可信：DMARC 通过（From 中的域名确实发出了这封邮件），且没有任何冒充迹象。
+    # 这时"紧迫感""请验证账户"等话术更可能是正常的平台通知，权重减半（实验 8）。
+    # 已知代价：真实企业邮箱被盗后发出的钓鱼同样能通过 DMARC，此时依靠模型层和其他规则识别。
+    trusted = (pe.auth_results.get("dmarc") == "pass" and bool(pe.from_domain)
+               and not any(h.rule_id in _IDENTITY_RED_FLAGS for h in hits))
+    if trusted:
+        for h in hits:
+            if h.rule_id in _WORDING_RULES:
+                h.weight = (h.weight + 1) // 2
+                h.evidence += TRUSTED_NOTE
+
     hits.sort(key=lambda h: (-h.critical, -h.weight))
-    return RuleResult(score=min(100, sum(h.weight for h in hits)), critical=any(h.critical for h in hits), hits=hits)
+    return RuleResult(score=min(100, sum(h.weight for h in hits)), critical=any(h.critical for h in hits), hits=hits,
+                      trusted_sender=trusted)

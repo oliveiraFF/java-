@@ -85,5 +85,45 @@ def test_microsoft_rewards_is_official():
     assert "DISPLAY_NAME_BRAND" not in ids(pe)
 
 
+def _weights(res):
+    return {h.rule_id: h.weight for h in res.hits}
+
+
+def test_trusted_sender_halves_wording_rules():
+    # 真实邮箱中的误报：Steam 登录提醒，DMARC 通过
+    body = "您的账号在新设备上登录，如非本人操作请立即修改密码"
+    pe = ParsedEmail(subject="Steam 上有新的登录操作", text=body, from_addr="noreply@steampowered.com",
+                     from_name="Steam", auth_results={"dmarc": "pass"})
+    res = evaluate(pe)
+    assert res.trusted_sender
+    assert _weights(res)["TEXT_URGENCY"] == 5  # 10 → 5
+    assert "DMARC" in next(h.evidence for h in res.hits if h.rule_id == "TEXT_URGENCY")
+    # 同样内容，认证失败：不减半
+    pe.auth_results = {"dmarc": "fail"}
+    assert _weights(evaluate(pe))["TEXT_URGENCY"] == 10
+
+
+def test_trusted_does_not_apply_to_impersonation():
+    # DMARC 通过但域名仿冒（攻击者自己注册的 paypa1.com 也能配好 DMARC）：不算可信
+    pe = ParsedEmail(subject="Account limited", text="Please verify your account immediately",
+                     from_addr="service@paypa1.com", from_name="PayPal", auth_results={"dmarc": "pass"})
+    res = evaluate(pe)
+    assert not res.trusted_sender
+    assert _weights(res)["TEXT_CREDENTIAL"] == 15
+
+
+def test_own_domain_links_skip_url_rules():
+    # 真实邮箱中的误报：阿里云邮件里的 http 激活链接指向 aliyun.com
+    own = UrlRef(href="http://notice.aliyun.com/verify?code=1", domain="notice.aliyun.com")
+    pe = ParsedEmail(from_addr="no-reply@notice.aliyun.com", auth_results={"dmarc": "pass"}, urls=[own])
+    assert "URL_HTTP_LOGIN" not in ids(pe)
+    pe.auth_results = {}  # 没有认证结果时照常判断
+    assert "URL_HTTP_LOGIN" in ids(pe)
+    # 认证通过，但链接指向别的域名：照常判断
+    other = UrlRef(href="http://login-check.top/verify", domain="login-check.top")
+    pe2 = ParsedEmail(from_addr="no-reply@notice.aliyun.com", auth_results={"dmarc": "pass"}, urls=[other])
+    assert {"URL_HTTP_LOGIN", "URL_SUSPICIOUS_TLD"} <= ids(pe2)
+
+
 def test_rule_ids_unique():
     assert len({r.rule_id for r in RULES}) == len(RULES)
