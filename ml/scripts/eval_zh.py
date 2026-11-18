@@ -24,6 +24,8 @@ MODELS = [
     ("tfidf_phish_mixed", "TF-IDF（中英混合，钓鱼 vs 非钓鱼）", "tfidf", ART / "baseline_tfidf_phish_mixed.joblib"),
     ("bert_phish", "DistilBERT（英文，钓鱼 vs 非钓鱼）", "bert", ART / "distilbert_phish"),
     ("bert_phish_mixed", "DistilBERT（中英混合，钓鱼 vs 非钓鱼）", "bert", ART / "distilbert_phish_mixed"),
+    ("tfidf_phish_mixed2", "TF-IDF（中英混合 + 通知类正常邮件）", "tfidf", ART / "baseline_tfidf_phish_mixed2.joblib"),
+    ("bert_phish_mixed2", "DistilBERT（中英混合 + 通知类正常邮件）", "bert", ART / "distilbert_phish_mixed2"),
 ]
 
 

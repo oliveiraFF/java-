@@ -104,8 +104,9 @@ def main() -> None:
                     help="malicious：钓鱼+诈骗+垃圾 vs 正常（原始标签）；phish：钓鱼+诈骗 vs 其他（垃圾/营销邮件算负样本）")
     ap.add_argument("--tokenizer", choices=["word", "mixed"], default="word",
                     help="word：按英文词切分（原始做法）；mixed：英文按词、中文按单字和相邻两字切分，用于中英文混合数据")
+    ap.add_argument("--suffix", default=None, help="覆盖输出文件名后缀，例如 _phish_mixed2")
     args = ap.parse_args()
-    suffix = ("" if args.target == "malicious" else "_phish") + ("_mixed" if args.tokenizer == "mixed" else "")
+    suffix = args.suffix or ("" if args.target == "malicious" else "_phish") + ("_mixed" if args.tokenizer == "mixed" else "")
     art, rep = Path(args.artifacts), Path(args.reports)
     art.mkdir(parents=True, exist_ok=True)
     rep.mkdir(parents=True, exist_ok=True)

@@ -112,6 +112,48 @@
       "trec06c_ham_fpr": 0.0,
       "trec06c_spam_fpr": 0.000437636761487965,
       "synth_phish_recall": 1.0
+    },
+    "tfidf_phish_mixed2": {
+      "label": "TF-IDF（中英混合 + 通知类正常邮件）",
+      "hw_phish_recall": 0.55,
+      "hw_ham_fpr": 0.0,
+      "hw_missed": [
+        "冒充老师",
+        "网盘共享",
+        "快递理赔",
+        "刷单返利",
+        "冒充客服退款",
+        "虚假会议",
+        "冒充公检法",
+        "停车罚单",
+        "密码重置"
+      ],
+      "hw_false_alarms": [],
+      "trec06c_ham_fpr": 0.0,
+      "trec06c_spam_fpr": 0.0,
+      "synth_phish_recall": 1.0
+    },
+    "bert_phish_mixed2": {
+      "label": "DistilBERT（中英混合 + 通知类正常邮件）",
+      "hw_phish_recall": 0.45,
+      "hw_ham_fpr": 0.0,
+      "hw_missed": [
+        "冒充领导",
+        "虚假退税",
+        "邮箱过期",
+        "冒充老师",
+        "网盘共享",
+        "刷单返利",
+        "冒充客服退款",
+        "冒充供应商",
+        "虚假会议",
+        "发票",
+        "冒充公检法"
+      ],
+      "hw_false_alarms": [],
+      "trec06c_ham_fpr": 0.0,
+      "trec06c_spam_fpr": 0.0,
+      "synth_phish_recall": 1.0
     }
   }
 }
